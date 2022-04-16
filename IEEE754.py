@@ -55,9 +55,7 @@ def get_full_decimal(num):
     base_2_str = str(base_2)
     exp = get_exponent(num_to_scientific_notation(base_2))
     #if exp < 0:
-    print(exp)
     decimal = base_2_str.find('.')
-    print(decimal)
     to_return = ""
     if abs(base_2) > 1:
         to_return = base_2_str[0] + "." + base_2_str[1:].replace(".", "")
@@ -65,6 +63,11 @@ def get_full_decimal(num):
         base_2_str = base_2_str[2:]
         to_return = base_2_str[:-exp] + "." + base_2_str[-exp:]
     return to_return
+
+def get_after_decimal(num):
+    decimal_num = str(get_full_decimal(num))
+    decimal = decimal_num.find(".")
+    return decimal_num[decimal + 1:]
 
 def sign_bit(num):
     if num < 0:
@@ -76,11 +79,33 @@ def exponent_IEEE754(str_num):
     exp = get_exponent(str_num)
     return whole_num_to_binary(exp + 127)
 
-def main():
-    num = 0.825
+def mantissa_maker(num):
+    mantissa = get_after_decimal(num)
+    while len(mantissa) < 23:
+        mantissa += "0"
+    return mantissa
 
-    x = to_base_2(num)
-    print(get_full_decimal(num))
+def full_IEEE754(num):
+    to_return = []
+    str_num = num_to_scientific_notation(to_base_2(num))
+    sign = sign_bit(num)
+    exponent = exponent_IEEE754(str_num)
+    mantissa = mantissa_maker(num)
+
+    to_return.append(sign)
+    to_return.append(exponent)
+    to_return.append(mantissa)
+    return to_return
+
+def main():
+    num1 = float(2345.125)
+    num1_IEEE754 = full_IEEE754(num1)
+
+    num2 = float(0.75)
+    num2_IEEE754 = full_IEEE754(num2)
+    print(num1_IEEE754)
+    print(num2_IEEE754)
+
 
 if __name__ == '__main__':
     main()
