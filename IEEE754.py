@@ -101,6 +101,7 @@ def full_IEEE754(num):
     to_return.append(sign)
     to_return.append(exponent)
     to_return.append(mantissa)
+    to_return = conv_float_to_bin(num)
     return to_return
 
 def conv_float_to_bin(num):
@@ -114,8 +115,8 @@ def conv_float_to_bin(num):
 def bin_mult(num1, num2):
     num1_str, num2_str = str(num1), str(num2)
     mult = int(num1_str, 2) * int(num2_str, 2)
-    bin_result = bin(mult)[2:]
-    return bin_result
+    bin_result = format(mult, '#48b')
+    return bin_result[2:]
 
 def bin_sub(num1, num2, abs_val=False):
     num1_str, num2_str = str(num1), str(num2)
@@ -151,30 +152,27 @@ def shift_right_arith(bin_num, prepend=True):
     to_return = "".join(str(i) for i in to_return)
     return to_return;
 
-def ADD_exp(num1, num2):
-    sign = num1[0] ^ num2[0]
+def ADD_IEEE754(num1, num2, add_sign):
+    sign = add_sign
     num1_exp, num2_exp = num1[1], num2[1]
     exp = ""
     exp_diff = int(bin_sub(num2_exp, num1_exp, abs_val=True), 2)
     sum = ""
     if int(num1_exp, 2) > int(num2_exp, 2):
         exp = num1_exp
-        shift_num2_M = num2[2]
-        check = True
+        shift_num2_M = "1" + num2[2]
         for i in range(exp_diff):
-            shift_num2_M = shift_right_arith(shift_num2_M, prepend=check)
-            check = False
+            shift_num2_M = shift_right_arith(shift_num2_M, prepend=False)
         num1[2] = "1" + num1[2]
         num2[2] = "0" + shift_num2_M
         sum = add_mantissas(num1, num2, exp)
 
     elif int(num1_exp, 2) < int(num2_exp, 2):
         exp = num2_exp
-        shift_num1_M = num1[2]
+        shift_num1_M = "1" + num1[2]
         check = True
         for i in range(exp_diff):
-            shift_num1_M = shift_right_arith(shift_num1_M, prepend=check)
-            check = False
+            shift_num1_M = shift_right_arith(shift_num1_M, prepend=False)
         num2[2] = "1" + num2[2]
         num1[2] = "0" + shift_num1_M
         sum = add_mantissas(num2, num1, exp)
@@ -198,21 +196,58 @@ def add_mantissas(num1, num2, exp):
 
     return zero_append(sum_M)
 
-def format_results(num):
-    print(f"{num[0]}\t{num[1]}\t{num[2]}")
+def MULT_IEEE754(num1, num2):
+    sign = int(num1[0]) ^ int(num2[0])
+    num1_exp, num2_exp = num1[1], num2[1]
+    exp = bin_add(num1_exp, num2_exp)
+    exp = bin_sub(exp, whole_num_to_binary(127))
+
+    num1_M = "1"  + num1[2]
+    num2_M = "1" + num2[2]
+    mantissa = bin_mult(num1_M, num2_M)
+    if len(mantissa) == 48:
+        mantissa = mantissa[::-1]
+        mantissa = mantissa[24:47]
+        mantissa = mantissa[::-1]
+    else:
+        mantissa = mantissa[::-1]
+        mantissa = mantissa[23:46]
+        mantissa = mantissa[::-1]
+    return [str(sign), exp, mantissa]
+
+def format_results(text, num):
+    print(f"{text}: {num[0]}\t{num[1]}\t{num[2]}")
 
 
 def main():
-    num1 = float(9.75)
+    num1 = float(input("Enter operand1 (decimal): "))
+    num2 = float(input("Enter operand2 (decimal): "))
+    op = str(input("Enter operator (add or mult): "))
     num1_IEEE754 = full_IEEE754(num1)
-
-    num2 = float(0.5625)
     num2_IEEE754 = full_IEEE754(num2)
-    print(num1_IEEE754)
-    print(num2_IEEE754)
 
-    sum = ADD_exp(num1_IEEE754, num2_IEEE754)
-    format_results(sum)
+    num1_IEEE754_copy = num1_IEEE754.copy()
+    num2_IEEE754_copy = num2_IEEE754.copy()
 
+    answer = []
+    if op.lower() == "add":
+        if num1 > 0 and num2 > 0:
+            answer = ADD_IEEE754(num1_IEEE754, num2_IEEE754, 0)
+        elif num1 < 0 and num2 > 0 and abs(num1) > abs(num2):
+            answer = ADD_IEEE754(num1_IEEE754, num2_IEEE754, 1)
+        elif num1 > 0 and num2 < 0 and abs(num1) < abs(num2):
+            answer = ADD_IEEE754(num1_IEEE754, num2_IEEE754, 1)
+        elif num1 < 0 and num2 < 0:
+            answer = ADD_IEEE754(num1_IEEE754, num2_IEEE754, 1)
+        else:
+            answer = ADD_IEEE754(num1_IEEE754, num2_IEEE754, 0)
+        format_results("operand1", num1_IEEE754_copy)
+        format_results("operand2", num2_IEEE754_copy)
+        format_results("\nsum\t", answer)
+    elif op.lower() == "mult":
+        answer = MULT_IEEE754(num1_IEEE754, num2_IEEE754)
+        format_results("operand1", num1_IEEE754_copy)
+        format_results("operand2", num2_IEEE754_copy)
+        format_results("\nproduct", answer)
 if __name__ == '__main__':
     main()
