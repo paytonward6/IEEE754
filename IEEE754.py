@@ -1,4 +1,7 @@
 import math
+from re import A
+
+from scipy.fftpack import shift
 
 # Python 3.8.10 on CSX Server
 def whole_num_to_binary(num):
@@ -97,15 +100,95 @@ def full_IEEE754(num):
     to_return.append(mantissa)
     return to_return
 
+def bin_mult(num1, num2):
+    num1_str, num2_str = str(num1), str(num2)
+    mult = int(num1_str, 2) * int(num2_str, 2)
+    bin_result = bin(mult)[2:]
+    return bin_result
+
+def bin_sub(num1, num2, abs_val=False):
+    num1_str, num2_str = str(num1), str(num2)
+    sub = 0
+    if abs_val:
+        sub = abs(int(num1_str, 2) - int(num2_str, 2))
+    else:
+        sub = int(num1_str, 2) - int(num2_str, 2)
+    bin_result = bin(sub)[2:]
+    return bin_result
+
+def bin_add(num1, num2, abs_val=False):
+    num1_str, num2_str = str(num1), str(num2)
+    sum = 0
+    if abs_val:
+        sum = abs(int(num1_str, 2) + int(num2_str, 2))
+    else:
+        sum = int(num1_str, 2) + int(num2_str, 2)
+    bin_result = bin(sum)[2:]
+    return bin_result
+
+def shift_right_arith(bin_num, prepend=True):
+    to_return = [0]*len(bin_num)
+    if prepend:
+        if bin_num[0] == '1':
+            to_return[0] = 1
+    else:
+        to_return[0] = 0
+
+    for i in range(1, len(bin_num)):
+        to_return[i] = bin_num[i-1]
+        
+    to_return = "".join(str(i) for i in to_return)
+    return to_return;
+
+def ADD_exp(num1, num2):
+    num1_exp, num2_exp = num1[1], num2[1]
+    exp = ""
+    exp_diff = int(bin_sub(num2_exp, num1_exp, abs_val=True), 2)
+
+    if int(num1_exp, 2) > int(num2_exp, 2):
+        exp = num1_exp
+        shift_num2_M = num2[2]
+        check = True
+        for i in range(exp_diff):
+            shift_num2_M = shift_right_arith(shift_num2_M, prepend=check)
+            check = False
+        num1[2] = "1" + num1[2]
+        num2[2] = "0" + shift_num2_M
+        add_mantissas(num1[2], num2[2])
+
+    elif int(num1_exp, 2) < int(num2_exp, 2):
+        exp = num2_exp
+        shift_num1_M = num1[2]
+        check = True
+        for i in range(exp_diff):
+            shift_num1_M = shift_right_arith(shift_num1_M, prepend=check)
+            check = False
+        num2[2] = "1" + num2[2]
+        num1[2] = "0" + shift_num1_M
+        add_mantissas(num2[2], num1[2])
+#100.0101
+#0.010
+
+def add_mantissas(num1_M, num2_M):
+    init_length = len(num1_M)
+    shift = 0
+    sum_M = bin_add(num1_M, num2_M) 
+    if sum_M[0] == 1:
+        shift = init_length - 23 - 1
+    else:
+        shift = x.find('1') + 1
+    print(sum_M)
+
 def main():
     num1 = float(2345.125)
     num1_IEEE754 = full_IEEE754(num1)
 
-    num2 = float(0.75)
+    num2 = float(.75)
     num2_IEEE754 = full_IEEE754(num2)
     print(num1_IEEE754)
     print(num2_IEEE754)
 
+    ADD_exp(num1_IEEE754, num2_IEEE754)
 
 if __name__ == '__main__':
     main()
